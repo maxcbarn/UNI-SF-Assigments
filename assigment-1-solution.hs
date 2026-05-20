@@ -92,7 +92,7 @@ cbigStep :: (C,Memoria) -> (C,Memoria)
 cbigStep (Skip,mem) = (Skip,mem)
 
 cbigStep (If b c1 c2,mem)
-   | bbigStep (b,mem) == True = cbigStep (c1,mem)
+   | bbigStep (b,mem) = cbigStep (c1,mem)
    | otherwise = cbigStep (c2,mem) 
 
 cbigStep (Seq c1 c2,mem) = cbigStep(c2, (snd (cbigStep(c1,mem))))  
@@ -100,14 +100,14 @@ cbigStep (Seq c1 c2,mem) = cbigStep(c2, (snd (cbigStep(c1,mem))))
 cbigStep (Atrib (Var var) e,mem) = (Skip, mudaVar mem var (ebigStep (e,mem)))
 
 cbigStep (While b c,mem)
-   | bbigStep (b,mem) == True = cbigStep (Seq c (While b c),mem)
+   | bbigStep (b,mem) = cbigStep (Seq c (While b c),mem)
    | otherwise = (Skip,mem)
 
 cbigStep (TenTimes c,mem) = cbigStep (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c Skip)))))))), mem)
 
 cbigStep (Repeat c b,mem)
-   | bbigStep (b,mem) == True = cbigStep(Seq c (Repeat c b),mem) 
-   | otherwise = (Skip,mem)
+   | bbigStep (b,mem) == False = cbigStep(Seq c (Repeat c b),mem) 
+   | otherwise = cbigStep(c,mem)
 
 cbigStep (Loop e1 e2 c,mem)
    | bbigStep( Leq e2 e1, mem ) = cbigStep(Skip,mem)
