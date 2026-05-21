@@ -1,5 +1,6 @@
 data E = Num Int
       |Var String
+      |VarDin E -- Just for Bubble Sort 
       |Soma E E
       |Sub E E
       |Mult E E
@@ -61,6 +62,7 @@ ebigStep (Mult e1 e2,mem) = ebigStep (e1,mem) * ebigStep (e2,mem) -- Using Exter
 
 ebigStep (Div e1 e2,mem) = ebigStep (e1,mem) `div` ebigStep (e2,mem) -- Using External Operations
 
+ebigStep (VarDin e , mem) = procuraVar mem (show (ebigStep (e, mem)))
 
 
 bbigStep :: (B,Memoria) -> Bool
@@ -123,6 +125,12 @@ cbigStep (DuplaATrib (Var var1) (Var var2) e1 e2, mem) = cbigStep (Seq (Atrib (V
 
 cbigStep ( Swap (Var var1) (Var var2) , mem ) = cbigStep( DuplaATrib (Var var1) (Var var2) (Num ( ebigStep((Var var2) , mem))) (Num ( ebigStep((Var var1) , mem))), mem)
 
+cbigStep(Swap (VarDin e1) (VarDin e2), mem) =
+      let v1 = show (ebigStep (e1, mem))
+          v2 = show (ebigStep (e2, mem))
+      in cbigStep (DuplaATrib (Var v1) (Var v2)
+                    (Num (procuraVar mem v2))
+                    (Num (procuraVar mem v1)), mem)
 
 exSigma2 :: Memoria
 exSigma2 = [("x",5), ("y",0), ("z",0)]
@@ -148,3 +156,70 @@ fatorial = (Seq (Atrib (Var "y") (Num 1))
                 (While (Not (Igual (Var "x") (Num 1)))
                        (Seq (Atrib (Var "y") (Mult (Var "y") (Var "x")))
                             (Atrib (Var "x") (Sub (Var "x") (Num 1))))))
+
+
+sigmaSumToN :: Memoria
+sigmaSumToN = [("s",1),("n",5), ("sum",0)]
+
+sumToN :: C
+sumToN = (Loop ( Num 1 ) ( Soma (Var "n") (Num 1) ) 
+            ( Seq (Atrib (Var "sum") (Soma (Var "s") (Var "sum"))) 
+               (Atrib (Var "s") (Soma (Var "s") (Num 1)))))
+
+programSumToN :: (C,Memoria)
+programSumToN = cbigStep(sumToN, sigmaSumToN)
+
+sigmaFibonaci :: Memoria
+sigmaFibonaci = [("lastlast",0),("last",0),("n", 1),("step", 0),("steps",8)]
+
+seqFibonaci :: C
+seqFibonaci = (Seq (DuplaATrib ( Var "lastlast" ) (Var "last") ( Var "last") ( Var "n")))
+                  ( Atrib (Var "n") (Soma (Var "last") (Var "lastlast")))
+
+fibonaci :: C
+fibonaci = ( Repeat (Seq (seqFibonaci) (Atrib (Var "step") 
+               (Soma (Var "step") (Num 1))))
+                  (Leq (Var "steps") (Var "step") ) )
+
+programFibonaci :: (C,Memoria)
+programFibonaci = cbigStep(fibonaci, sigmaFibonaci)
+
+
+
+
+sigmaBubbleSort1 :: Memoria
+sigmaBubbleSort1 = [("size",10),("index",0),("0",1),("1",5), ("2",2), ("3",6), ("4",10), ("5",8), ("6",3), ("7",4), ("8",7), ("9",9)]
+
+sigmaBubbleSort2 :: Memoria
+sigmaBubbleSort2 = [("size",5),("index",0),("0",1),("1",5), ("2",2), ("3",6), ("4",10)]
+
+bubbleSortPass :: C
+bubbleSortPass = Loop (Num 0) (Sub (Var "size") (Num 1)) 
+                  (If (Leq (VarDin (Soma (Var "index") (Num 1))) (VarDin (Var "index")))
+                     (Seq (Swap (VarDin (Var "index")) (VarDin (Soma (Var "index") (Num 1))))
+                        (Atrib (Var "index") (Soma (Var "index") (Num 1))))
+                           (Seq Skip (Atrib (Var "index")   
+                              (Soma (Var "index") (Num 1)))))
+
+bubbleSort :: (C)
+bubbleSort = Loop (Num 0) (Soma (Var "size") (Num 1))
+               (Seq bubbleSortPass
+                  (Atrib (Var "index") (Num 0)))
+
+programBubbleSort :: (C, Memoria)
+programBubbleSort = cbigStep(bubbleSort, sigmaBubbleSort1)
+
+programBubbleSortMem :: Memoria -> (C,Memoria)
+programBubbleSortMem ( mem ) = cbigStep(bubbleSort, mem)
+
+
+sigmaMax :: Memoria
+sigmaMax = [("x",20),("y",10),("max",0)]
+
+maxMe :: C
+maxMe = If (Leq (Var "x") (Var "y"))
+         (Atrib (Var "max") (Var "y"))
+            (Atrib (Var "max") (Var "x"))
+
+maxProgram :: (C,Memoria)
+maxProgram = cbigStep(maxMe, sigmaMax)
